@@ -1,0 +1,3 @@
+[submodule "scab-transcript-youtube"]
+	path = scab-transcript-youtube
+	url = git@github.com:Helicoir/scab-transcript-youtube.git
