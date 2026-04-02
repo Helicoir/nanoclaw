@@ -199,7 +199,9 @@ export class DiscordChannel implements Channel {
         { shardId, code: event.code, reason: event.reason },
         'Discord shard disconnected',
       );
-      this.scheduleReconnect(`shard ${shardId} disconnected (code ${event.code})`);
+      this.scheduleReconnect(
+        `shard ${shardId} disconnected (code ${event.code})`,
+      );
     });
 
     this.client.on(Events.ShardError, (err, shardId) => {

@@ -234,15 +234,9 @@ async function buildContainerArgs(
   // Pass host timezone so container's local time matches the user's
   args.push('-e', `TZ=${TIMEZONE}`);
 
-  // Pass MCP integration credentials (Todoist, Google Calendar) if available.
-  // These are read from the host's environment or .env file and forwarded
-  // so container-side MCP servers can authenticate with external APIs.
-  const mcpEnvKeys = [
-    'TODOIST_API_KEY',
-    'GOOGLE_CLIENT_ID',
-    'GOOGLE_CLIENT_SECRET',
-    'GOOGLE_REFRESH_TOKEN',
-  ] as const;
+  // Pass MCP integration credentials (Todoist) if available.
+  // Read from the host's environment or .env file and forward to container.
+  const mcpEnvKeys = ['TODOIST_API_KEY'] as const;
   const mcpEnvFromFile = readEnvFile([...mcpEnvKeys]);
   for (const key of mcpEnvKeys) {
     const val = process.env[key] || mcpEnvFromFile[key];
