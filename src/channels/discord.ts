@@ -29,10 +29,30 @@ export class DiscordChannel implements Channel {
   private client: Client | null = null;
   private opts: DiscordChannelOpts;
   private botToken: string;
+  private reconnecting = false;
 
   constructor(botToken: string, opts: DiscordChannelOpts) {
     this.botToken = botToken;
     this.opts = opts;
+  }
+
+  private scheduleReconnect(reason: string, delaySec = 5): void {
+    if (this.reconnecting) return;
+    this.reconnecting = true;
+    logger.warn(
+      { reason, delaySec },
+      'Discord disconnected, scheduling reconnect',
+    );
+    setTimeout(async () => {
+      this.reconnecting = false;
+      try {
+        logger.info('Discord reconnecting...');
+        await this.client?.login(this.botToken);
+      } catch (err) {
+        logger.error({ err }, 'Discord reconnect failed');
+        this.scheduleReconnect('reconnect failed', Math.min(delaySec * 2, 60));
+      }
+    }, delaySec * 1000);
   }
 
   async connect(): Promise<void> {
@@ -173,8 +193,29 @@ export class DiscordChannel implements Channel {
       logger.error({ err: err.message }, 'Discord client error');
     });
 
+    // Auto-reconnect on shard disconnect / unexpected close
+    this.client.on(Events.ShardDisconnect, (event, shardId) => {
+      logger.warn(
+        { shardId, code: event.code, reason: event.reason },
+        'Discord shard disconnected',
+      );
+      this.scheduleReconnect(`shard ${shardId} disconnected (code ${event.code})`);
+    });
+
+    this.client.on(Events.ShardError, (err, shardId) => {
+      logger.error({ shardId, err: err.message }, 'Discord shard error');
+    });
+
+    this.client.on(Events.ShardReconnecting, (shardId) => {
+      logger.info({ shardId }, 'Discord shard reconnecting');
+    });
+
+    this.client.on(Events.ShardReady, (shardId) => {
+      logger.info({ shardId }, 'Discord shard ready');
+    });
+
     return new Promise<void>((resolve) => {
-      this.client!.once(Events.ClientReady, (readyClient) => {
+      this.client!.on(Events.ClientReady, (readyClient) => {
         logger.info(
           { username: readyClient.user.tag, id: readyClient.user.id },
           'Discord bot connected',
@@ -183,8 +224,9 @@ export class DiscordChannel implements Channel {
         console.log(
           `  Use /chatid command or check channel IDs in Discord settings\n`,
         );
-        resolve();
       });
+
+      this.client!.once(Events.ClientReady, () => resolve());
 
       this.client!.login(this.botToken);
     });
