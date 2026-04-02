@@ -426,11 +426,11 @@ async function runQuery(
             NANOCLAW_IS_MAIN: containerInput.isMain ? '1' : '0',
           },
         },
-        ...(process.env.TODOIST_API_KEY ? {
+        ...(process.env.TODOIST_TOKEN ? {
           todoist: {
             command: 'npx',
             args: ['-y', 'todoist-mcp'],
-            env: { API_KEY: process.env.TODOIST_API_KEY },
+            env: { API_KEY: process.env.TODOIST_TOKEN },
           },
         } : {}),
       },

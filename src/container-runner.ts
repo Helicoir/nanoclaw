@@ -236,7 +236,7 @@ async function buildContainerArgs(
 
   // Pass MCP integration credentials (Todoist) if available.
   // Read from the host's environment or .env file and forward to container.
-  const mcpEnvKeys = ['TODOIST_API_KEY'] as const;
+  const mcpEnvKeys = ['TODOIST_TOKEN'] as const;
   const mcpEnvFromFile = readEnvFile([...mcpEnvKeys]);
   for (const key of mcpEnvKeys) {
     const val = process.env[key] || mcpEnvFromFile[key];
