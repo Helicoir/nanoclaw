@@ -25,6 +25,7 @@ import {
   stopContainer,
 } from './container-runtime.js';
 import { OneCLI } from '@onecli-sh/sdk';
+import { readEnvFile } from './env.js';
 import { validateAdditionalMounts } from './mount-security.js';
 import { RegisteredGroup } from './types.js';
 
@@ -232,6 +233,21 @@ async function buildContainerArgs(
 
   // Pass host timezone so container's local time matches the user's
   args.push('-e', `TZ=${TIMEZONE}`);
+
+  // Pass MCP integration credentials (Todoist, Google Calendar) if available.
+  // These are read from the host's environment or .env file and forwarded
+  // so container-side MCP servers can authenticate with external APIs.
+  const mcpEnvKeys = [
+    'TODOIST_API_KEY',
+    'GOOGLE_CLIENT_ID',
+    'GOOGLE_CLIENT_SECRET',
+    'GOOGLE_REFRESH_TOKEN',
+  ] as const;
+  const mcpEnvFromFile = readEnvFile([...mcpEnvKeys]);
+  for (const key of mcpEnvKeys) {
+    const val = process.env[key] || mcpEnvFromFile[key];
+    if (val) args.push('-e', `${key}=${val}`);
+  }
 
   // OneCLI gateway handles credential injection — containers never see real secrets.
   // The gateway intercepts HTTPS traffic and injects API keys or OAuth tokens.

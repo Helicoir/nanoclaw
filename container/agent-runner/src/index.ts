@@ -409,7 +409,9 @@ async function runQuery(
         'TeamCreate', 'TeamDelete', 'SendMessage',
         'TodoWrite', 'ToolSearch', 'Skill',
         'NotebookEdit',
-        'mcp__nanoclaw__*'
+        'mcp__nanoclaw__*',
+        'mcp__todoist__*',
+        'mcp__google_calendar__*'
       ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
@@ -425,6 +427,24 @@ async function runQuery(
             NANOCLAW_IS_MAIN: containerInput.isMain ? '1' : '0',
           },
         },
+        ...(process.env.TODOIST_API_KEY ? {
+          todoist: {
+            command: 'npx',
+            args: ['-y', 'todoist-mcp'],
+            env: { API_KEY: process.env.TODOIST_API_KEY },
+          },
+        } : {}),
+        ...(process.env.GOOGLE_REFRESH_TOKEN ? {
+          google_calendar: {
+            command: 'node',
+            args: [gcalMcpPath],
+            env: {
+              GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
+              GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
+              GOOGLE_REFRESH_TOKEN: process.env.GOOGLE_REFRESH_TOKEN ?? '',
+            },
+          },
+        } : {}),
       },
       hooks: {
         PreCompact: [{ hooks: [createPreCompactHook(containerInput.assistantName)] }],
@@ -538,6 +558,7 @@ async function main(): Promise<void> {
 
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const mcpServerPath = path.join(__dirname, 'ipc-mcp-stdio.js');
+  const gcalMcpPath = path.join(__dirname, 'gcal-mcp-stdio.js');
 
   let sessionId = containerInput.sessionId;
   fs.mkdirSync(IPC_INPUT_DIR, { recursive: true });
