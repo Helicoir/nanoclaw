@@ -264,6 +264,16 @@ export function startSchedulerLoop(deps: SchedulerDependencies): void {
           continue;
         }
 
+        // Advance next_run immediately so the task isn't re-enqueued
+        // on the next scheduler tick while waiting in the queue.
+        const nextRun = computeNextRun(currentTask);
+        if (nextRun) {
+          updateTask(currentTask.id, { next_run: nextRun });
+        } else {
+          // once tasks: mark completed so getDueTasks won't pick it up again
+          updateTask(currentTask.id, { status: 'completed' });
+        }
+
         deps.queue.enqueueTask(currentTask.chat_jid, currentTask.id, () =>
           runTask(currentTask, deps),
         );
